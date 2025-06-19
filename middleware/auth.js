@@ -1,21 +1,32 @@
-const jwt=require('jsonwebtoken')
-require ('dotenv').config();
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+const User = require('../model/userModel');
 
-const auth=async(req,res,next)=>{
-    try{
-      const token=req.headers['auth-token']
-      console.log(token)
+const auth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-      const data=jwt.verify(token,process.env.JWT_TOKEN)
-      console.log(data)
+    console.log(token)
 
-      const user=await user.findByPk(data.id)
-      req.user=user;
-      next()
+    if (!token) {
+      return res.status(401).json({ success: false, msg: 'No token provided' });
     }
-   catch(error){
-     return res.status(500).json({success : false , msg : "Internal server error"})
-   }
-}
 
-module.exports=auth;
+    const data = jwt.verify(token, process.env.JWT_TOKEN);
+
+    console.log(data)
+    const user = await User.findByPk(data.id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, msg: 'User not found' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, msg: 'Invalid or expired token' });
+  }
+};
+
+module.exports = auth;
